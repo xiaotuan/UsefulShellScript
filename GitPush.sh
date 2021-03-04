@@ -34,6 +34,36 @@ function main() {
         else
             if [ $autoPush -eq 1 ];then
                 git add -A
+                if [[ -z $message ]];then
+                    read -p "请输入提交信息：" message
+                fi
+                git commit -m "$message"
+                pullInfo=`git pull --rebase`
+                echo $pullInfo
+                pullSuccess="Current branch master is up to date."
+                if [[ $pullInfo =~ $pullSuccess ]];then
+                    for remote in `git remote | awk '{print $0}'`
+                    do
+                        index=0
+                        while [ $index -lt 3 ]
+                        do
+                            echo "正在执行 git push $remote 第 $index 次"
+                            git push $remote
+                            if [ $? -eq 0 ];then
+                                index=4
+                            else
+                                let index++
+                                if [ $index -lt 3 ];then
+                                    echo -e "\e[1;31m错误：上传代码至$remote仓库失败\e[0m"
+                                    return 1
+                                fi
+                            fi
+                        done
+                    done
+                else
+                    echo -e "\e[1;31m错误：更新代码失败\e[0m"
+                    return 1
+                fi
             else
                 if [[ ! $gitStatu =~ $noChangeMsg ]] && [[ ! $gitStatu =~ $hasCommitMsg ]];then
                     git status
@@ -88,44 +118,45 @@ function main() {
 }
 
 # 开始执行脚本，并将脚本参数传递给 main 函数
+# 是否需要退出
+needExit=0
+# 脚本执行状态
+statu=0
 # 上一个参数
 lastArg=""
 # 遍历脚本参数
 while [ $# != 0 ];do
-    arg=$1
-    echo "arg: $arg"
     # 解析脚本参数
-    case $arg in
+    case $1 in
         # 适配所有以 --开头的字符串
         --help)
             showHelper
-            return 0
+            needExit=1
             ;;
 
         -a)
             autoPush=1
-            lastArg=""
+            lastArg="-a"
             ;;
 
         # 适配所有以 - 开头的字符串
         -*)
-            if [[ $arg = "-h" ]];then
+            if [[ $1 = "-h" ]];then
                 showHelper
-                return 0
+                needExit=1
             fi
-            lastArg=$arg
+            lastArg=$1
             ;;
 
         # 适配所有不以 - 或 -- 开头的字符串
         *)
-            # echo "arg: $arg, lastArg: $lastArg"
             case $lastArg in
                 -m)
-                    message=$arg
+                    message=$1
                     ;;
                 *)
-                    echo -e "\e[1;31m错误：未知参数$arg"
-                    return 1
+                    echo -e "\e[1;31m错误：未知参数$1"
+                    statu=1
             esac
             lastArg=""
             ;;
@@ -133,17 +164,23 @@ while [ $# != 0 ];do
     shift
 done
 
-echo ""
-echo "autoPush: $autoPush"
-echo "message: $message"
-echo ""
+if [ $needExit -eq 0 ];then
+    echo ""
+    echo "autoPush: $autoPush"
+    echo "message: $message"
+    echo ""
+fi
 
-main
+if [ $statu -eq 0 ] && [ $needExit -eq 0 ];then
+    main
+    statu=$?
+fi
 
-result=$?
-echo ""
-if [ $result -eq 0 ];then
-    echo -e "\e[1;32m========================================= 执行成功 =========================================\e[0m"
-else
-    echo -e "\e[1;31m========================================= 执行失败 =========================================\e[0m"
+if [ $needExit -eq 0 ];then
+    echo ""
+    if [ $statu -eq 0 ];then
+        echo -e "\e[1;32m========================================= 执行成功 =========================================\e[0m"
+    else
+        echo -e "\e[1;31m========================================= 执行失败 =========================================\e[0m"
+    fi
 fi
