@@ -41,7 +41,8 @@ function main() {
                 pullInfo=`git pull --rebase`
                 echo $pullInfo
                 pullSuccess="Current branch master is up to date."
-                if [[ $pullInfo =~ $pullSuccess ]];then
+                pullSuccess1="Successfully rebased and updated"
+                if [[ $pullInfo =~ $pullSuccess ]] || [[ $pullInfo =~ $pullSuccess1 ]];then
                     for remote in `git remote | awk '{print $0}'`
                     do
                         index=0
@@ -83,7 +84,8 @@ function main() {
                     pullInfo=`git pull --rebase`
                     echo $pullInfo
                     pullSuccess="Current branch master is up to date."
-                    if [[ $pullInfo =~ $pullSuccess ]];then
+                    pullSuccess1="Successfully rebased and updated"
+                    if [[ $pullInfo =~ $pullSuccess ]] || [[ $pullInfo =~ $pullSuccess1 ]];then
                         for remote in `git remote | awk '{print $0}'`
                         do
                             index=0
